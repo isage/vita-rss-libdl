@@ -12,7 +12,8 @@ make && make install
 ## Usage
 
 Like on any POSIX platform - include `dlfcn.h`  
-Link with `-ldl -ltaihen_stub -lSceKernelModulemgr_stub -lSceSblSsMgr_stub`
+Link with `-ldl -ltaihen_stub -lSceKernelModulemgr_stub -lSceSblSsMgr_stub`  
+Build your `suprx` without custom NIDs and use `dlopen` to load it.
 
 ## Thanks
 * [Graphene](https://github.com/GrapheneCt)
