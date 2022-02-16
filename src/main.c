@@ -1,9 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <psp2common/types.h>
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/modulemgr.h>
 #include <taihen.h>
-#include "sha256.h"
+
+typedef struct SceSblDmac5HashTransformParam {
+   void* src;
+   void* dst;
+   SceSize size;
+   uint32_t unk_C;
+   uint32_t unk_10;
+   void* iv;
+} SceSblDmac5HashTransformParam;
+
+int sceSblDmac5HashTransform(SceSblDmac5HashTransformParam *pParam, SceUInt32 command, SceUInt32 flags);
+
 
 #define DLERR_MAX 256
 
@@ -46,7 +59,28 @@ void *dlsym(void *__handle, const char *__name)
     }
 
     size_t len = strlen(__name);
-    uint32_t nid = sha256_32_vector(1, (uint8_t**)&__name, (size_t*)&len);
+
+    uint8_t src[0x40 + 0x3F];
+    uint8_t dst[0x20];
+
+    void *p = (void*)((uintptr_t)(src + 0x3F) & ~0x3F);
+
+    snprintf((char*)p, 64, __name);
+
+    SceSblDmac5HashTransformParam param = {0};
+    param.src = p;
+    param.dst = dst;
+    param.size = strlen(__name);
+
+    ret = sceSblDmac5HashTransform(&param, 0x13, 0x000);
+
+    if (ret < 0)
+    {
+        set_dl_error("[libdl] sceSblDmac5HashTransform() error: 0x%08x\n", ret);
+        return NULL;
+    }
+
+    uint32_t nid = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | dst[3];
 
     uintptr_t func;
     ret = taiGetModuleExportFunc(info.module_name, TAI_ANY_LIBRARY, nid, &func);

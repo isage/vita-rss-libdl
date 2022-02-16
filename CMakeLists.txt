@@ -12,7 +12,6 @@ project(dl)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 add_library(${PROJECT_NAME} STATIC
-  src/sha256.c
   src/main.c
 )
 

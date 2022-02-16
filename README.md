@@ -12,4 +12,8 @@ make && make install
 ## Usage
 
 Like on any POSIX platform - include `dlfcn.h`  
-Link with `-ldl -ltaihen_stub -lSceKernelModulemgr_stub`
+Link with `-ldl -ltaihen_stub -lSceKernelModulemgr_stub -lSceSblSsMgr_stub`
+
+## Thanks
+* [Graphene](https://github.com/GrapheneCt)
+* [PoS](https://github.com/Princess-of-Sleeping)
