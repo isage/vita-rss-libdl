@@ -10,16 +10,10 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 project(dl)
-option(LIBDL_USE_SHA1 "Use sha1 for NID generation" OFF)
-
 
 add_library(${PROJECT_NAME} STATIC
   src/main.c
 )
-
-if(LIBDL_USE_SHA1)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USESHA1=1)
-endif()
 
 install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"

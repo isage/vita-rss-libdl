@@ -61,11 +61,8 @@ void *dlsym(void *__handle, const char *__name)
     size_t len = strlen(__name);
 
     uint8_t src[0x40 + 0x3F];
-#if defined(USESHA1)
-    uint8_t dst[0x14];
-#else
     uint8_t dst[0x20];
-#endif
+
     void *p = (void*)((uintptr_t)(src + 0x3F) & ~0x3F);
 
     snprintf((char*)p, 64, __name);
@@ -75,25 +72,40 @@ void *dlsym(void *__handle, const char *__name)
     param.dst = dst;
     param.size = strlen(__name);
 
-#if defined(USESHA1)
-    ret = sceSblDmac5HashTransform(&param, 0x03, 0x000);
-#else
     ret = sceSblDmac5HashTransform(&param, 0x13, 0x000);
-#endif
 
     if (ret < 0)
     {
-        set_dl_error("[libdl] sceSblDmac5HashTransform() error: 0x%08x\n", ret);
+        set_dl_error("[libdl] sceSblDmac5HashTransform(sha256) error: 0x%08x\n", ret);
         return NULL;
     }
 
     uint32_t nid = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | dst[3];
 
     uintptr_t func;
+
     ret = taiGetModuleExportFunc(info.module_name, TAI_ANY_LIBRARY, nid, &func);
+
     if (ret == 0)
     {
         return (void*)func;
+    }
+
+    if (ret == 0x90010002) // try sha1 instead
+    {
+        ret = sceSblDmac5HashTransform(&param, 0x03, 0x000);
+        if (ret < 0)
+        {
+            set_dl_error("[libdl] sceSblDmac5HashTransform(sha1) error: 0x%08x\n", ret);
+            return NULL;
+        }
+        nid = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | dst[3];
+
+        ret = taiGetModuleExportFunc(info.module_name, TAI_ANY_LIBRARY, nid, &func);
+        if (ret == 0)
+        {
+            return (void*)func;
+        }
     }
     set_dl_error("[libdl] taiGetModuleExportFunc(%s, TAI_ANY_LIBRARY, 0x%08x, &func) error: 0x%08x\n", info.module_name, nid, ret);
     return NULL;
