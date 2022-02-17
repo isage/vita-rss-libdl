@@ -61,8 +61,11 @@ void *dlsym(void *__handle, const char *__name)
     size_t len = strlen(__name);
 
     uint8_t src[0x40 + 0x3F];
+#if defined(USESHA1)
+    uint8_t dst[0x14];
+#else
     uint8_t dst[0x20];
-
+#endif
     void *p = (void*)((uintptr_t)(src + 0x3F) & ~0x3F);
 
     snprintf((char*)p, 64, __name);
@@ -72,7 +75,11 @@ void *dlsym(void *__handle, const char *__name)
     param.dst = dst;
     param.size = strlen(__name);
 
+#if defined(USESHA1)
+    ret = sceSblDmac5HashTransform(&param, 0x03, 0x000);
+#else
     ret = sceSblDmac5HashTransform(&param, 0x13, 0x000);
+#endif
 
     if (ret < 0)
     {
