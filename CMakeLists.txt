@@ -13,6 +13,7 @@ project(dl)
 
 add_library(${PROJECT_NAME} STATIC
   src/main.c
+  src/taiutils.c
 )
 
 install(TARGETS ${PROJECT_NAME}

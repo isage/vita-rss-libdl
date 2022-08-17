@@ -4,7 +4,7 @@
 #include <psp2common/types.h>
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/modulemgr.h>
-#include <taihen.h>
+#include "taiutils.h"
 
 typedef struct SceSblDmac5HashTransformParam {
    void* src;
@@ -84,7 +84,7 @@ void *dlsym(void *__handle, const char *__name)
 
     uintptr_t func;
 
-    ret = taiGetModuleExportFunc(info.module_name, TAI_ANY_LIBRARY, nid, &func);
+    ret = module_get_export(info.module_name, TAI_ANY_LIBRARY, nid, &func);
 
     if (ret == 0)
     {
@@ -101,13 +101,13 @@ void *dlsym(void *__handle, const char *__name)
         }
         nid = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | dst[3];
 
-        ret = taiGetModuleExportFunc(info.module_name, TAI_ANY_LIBRARY, nid, &func);
+        ret = module_get_export(info.module_name, TAI_ANY_LIBRARY, nid, &func);
         if (ret == 0)
         {
             return (void*)func;
         }
     }
-    set_dl_error("[libdl] taiGetModuleExportFunc(%s, TAI_ANY_LIBRARY, 0x%08x, &func) error: 0x%08x\n", info.module_name, nid, ret);
+    set_dl_error("[libdl] module_get_export(%s, TAI_ANY_LIBRARY, 0x%08x, &func) error: 0x%08x\n", info.module_name, nid, ret);
     return NULL;
 }
 
