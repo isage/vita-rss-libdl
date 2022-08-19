@@ -10,6 +10,9 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 project(dl)
+set (${PROJECT_NAME}_VERSION_MAJOR 0)
+set (${PROJECT_NAME}_VERSION_MINOR 2)
+set (${PROJECT_NAME}_VERSION_RELEASE 0)
 
 add_library(${PROJECT_NAME} STATIC
   src/main.c
