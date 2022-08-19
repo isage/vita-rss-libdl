@@ -54,7 +54,7 @@ void *dlsym(void *__handle, const char *__name)
     int ret = sceKernelGetModuleInfo((int)__handle, &info);
     if (ret < 0)
     {
-        set_dl_error("[libdl] sceKernelGetModuleInfo(0x%08x, &info) error: 0x%08x\n", __handle, ret);
+        set_dl_error("[libdl] dlsym(0x%08x, %s): sceKernelGetModuleInfo() error: 0x%08x\n", __handle, __name, ret);
         return NULL;
     }
 
