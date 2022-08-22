@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright: (c) 2022 IVan Epifanov, Jaylon Gowie
+Copyright: (c) 2022 Ivan Epifanov, Jaylon Gowie
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
