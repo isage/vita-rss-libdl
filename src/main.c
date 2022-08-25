@@ -48,6 +48,7 @@ void *dlopen(const char *__file, int __mode)
         module->ref_count = 1;
         module->module_id = MAIN_MODULE_ID;
         sceClibMemset(module->path, 0, 256);
+        return (void*)module;
     }
     else
     {
