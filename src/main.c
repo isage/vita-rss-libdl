@@ -101,24 +101,34 @@ int dlclose(void *__handle)
     module_ref_t* module = (struct module_ref *)__handle;
     if (module)
     {
-        module->ref_count--;
-        if (module->ref_count == 0)
+        if (module->module_id != MAIN_MODULE_ID)
         {
-            sceKernelStopUnloadModule(module->module_id, 0, NULL, 0, NULL, NULL);
+            module->ref_count--;
+            if (module->ref_count == 0)
+            {
+                sceKernelStopUnloadModule(module->module_id, 0, NULL, 0, NULL, NULL);
 
-            if(first == module)
-               first = module->next;
-            else if (module->prev)
-                module->prev->next = module->next;
+                if(first == module)
+                   first = module->next;
+                else if (module->prev)
+                    module->prev->next = module->next;
 
-            if(last == module)
-               last = module->prev;
-            else if (module->next)
-                module->next->prev = module->prev;
+                if(last == module)
+                   last = module->prev;
+                else if (module->next)
+                    module->next->prev = module->prev;
 
+                free(module);
+            }
+        }
+        else
+        {
             free(module);
         }
+        return 0;
     }
+    set_dl_error("[libdl] dlclose(0x%08x) error: invalid handle\n", __handle);
+    return -1;
 }
 
 void *dlsym(void *__handle, const char *__name)
