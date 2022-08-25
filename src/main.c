@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <psp2common/types.h>
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/modulemgr.h>
 #include "taiutils.h"
+#include "moduleref.h"
 
 typedef struct SceSblDmac5HashTransformParam {
    void* src;
@@ -17,6 +19,8 @@ typedef struct SceSblDmac5HashTransformParam {
 
 int sceSblDmac5HashTransform(SceSblDmac5HashTransformParam *pParam, SceUInt32 command, SceUInt32 flags);
 
+module_ref_t *first = NULL;
+module_ref_t *last = NULL;
 
 #define DLERR_MAX 256
 
@@ -33,29 +37,112 @@ static int _dl_err_set = 0;
 
 void *dlopen(const char *__file, int __mode)
 {
-    int ret = sceKernelLoadStartModule(__file, 0, NULL, 0, NULL, NULL);
-    if (ret < 0)
+    // TODO: empty path = main module
+    int module_id;
+    char fullpath[256];
+
+    if (__file == NULL) // main module
     {
-        set_dl_error("[libdl] sceKernelLoadStartModule(%s, 0, NULL, 0, NULL, NULL) error: 0x%08x\n", __file, ret);
-        return NULL;
+        // since we don't load/unload it, we don't care about refcount
+        module_ref_t *module = (module_ref_t*) malloc(sizeof(module_ref_t));
+        module->ref_count = 1;
+        module->module_id = MAIN_MODULE_ID;
+        sceClibMemset(module->path, 0, 256);
+        return (void*)module;
     }
-    return (void*)ret;
+    else
+    {
+        char* pathret = realpath(__file, fullpath);
+
+        if (pathret == NULL)
+        {
+            set_dl_error("[libdl] dlopen(%s, %d) realpath() error: %x\n", __file, __mode, errno);
+            return NULL;
+        }
+
+        module_ref_t* current = first;
+        while(current != NULL && strcmp(current->path, fullpath) != 0)
+        {
+            current = current->next;
+        }
+        if (current != NULL)
+        {
+            current->ref_count++;
+            return (void*)current;
+        }
+
+        module_id = sceKernelLoadStartModule(fullpath, 0, NULL, 0, NULL, NULL);
+        if (module_id < 0)
+        {
+            set_dl_error("[libdl] sceKernelLoadStartModule(%s, 0, NULL, 0, NULL, NULL) error: 0x%08x\n", __file, module_id);
+            return NULL;
+        }
+    }
+
+    module_ref_t *module = (module_ref_t*) malloc(sizeof(module_ref_t));
+    module->ref_count = 1;
+    module->module_id = module_id;
+    strncpy(module->path, fullpath, 256);
+
+    if (last)
+        last->next = module;
+    else
+        first = module;
+
+    module->prev = last;
+    module->next = NULL;
+    last = module;
+
+    return (void*)module;
 }
 
 int dlclose(void *__handle)
 {
-    sceKernelStopUnloadModule((int)__handle, 0, NULL, 0, NULL, NULL);
+    module_ref_t* module = (struct module_ref *)__handle;
+    if (module)
+    {
+        module->ref_count--;
+        if (module->ref_count == 0)
+        {
+            sceKernelStopUnloadModule(module->module_id, 0, NULL, 0, NULL, NULL);
+
+            if(first == module)
+               first = module->next;
+            else if (module->prev)
+                module->prev->next = module->next;
+
+            if(last == module)
+               last = module->prev;
+            else if (module->next)
+                module->next->prev = module->prev;
+
+            free(module);
+        }
+    }
 }
 
 void *dlsym(void *__handle, const char *__name)
 {
+    module_ref_t* module = (struct module_ref *)__handle;
+    char* module_name;
+    int ret;
+
     SceKernelModuleInfo info = {0};
     info.size = sizeof(SceKernelModuleInfo);
-    int ret = sceKernelGetModuleInfo((int)__handle, &info);
-    if (ret < 0)
+
+    if (module->module_id != MAIN_MODULE_ID)
     {
-        set_dl_error("[libdl] dlsym(0x%08x, %s): sceKernelGetModuleInfo() error: 0x%08x\n", __handle, __name, ret);
-        return NULL;
+        ret = sceKernelGetModuleInfo(module->module_id, &info);
+        if (ret < 0)
+        {
+            set_dl_error("[libdl] dlsym(0x%08x, %s): sceKernelGetModuleInfo() error: 0x%08x\n", __handle, __name, ret);
+            return NULL;
+        }
+        module_name = info.module_name;
+    }
+    else
+    {
+        module_name = TAI_MAIN_MODULE;
     }
 
     size_t len = strlen(__name);
@@ -84,7 +171,7 @@ void *dlsym(void *__handle, const char *__name)
 
     uintptr_t func;
 
-    ret = module_get_export(info.module_name, TAI_ANY_LIBRARY, nid, &func);
+    ret = module_get_export(module_name, TAI_ANY_LIBRARY, nid, &func);
 
     if (ret == 0)
     {
@@ -101,13 +188,13 @@ void *dlsym(void *__handle, const char *__name)
         }
         nid = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | dst[3];
 
-        ret = module_get_export(info.module_name, TAI_ANY_LIBRARY, nid, &func);
+        ret = module_get_export(module_name, TAI_ANY_LIBRARY, nid, &func);
         if (ret == 0)
         {
             return (void*)func;
         }
     }
-    set_dl_error("[libdl] module_get_export(%s, TAI_ANY_LIBRARY, 0x%08x, &func) error: 0x%08x\n", info.module_name, nid, ret);
+    set_dl_error("[libdl] module_get_export(%s, TAI_ANY_LIBRARY, 0x%08x, &func) error: 0x%08x\n", module_name, nid, ret);
     return NULL;
 }
 
