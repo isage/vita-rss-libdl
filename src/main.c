@@ -140,7 +140,7 @@ void *dlsym(void *__handle, const char *__name)
     SceKernelModuleInfo info = {0};
     info.size = sizeof(SceKernelModuleInfo);
 
-    if (module->module_id != MAIN_MODULE_ID)
+    if (__handle !=NULL && module->module_id != MAIN_MODULE_ID)
     {
         ret = sceKernelGetModuleInfo(module->module_id, &info);
         if (ret < 0)
