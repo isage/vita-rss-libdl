@@ -1,10 +1,14 @@
 libdltest:
   attributes: 0
+  process_image: true
   version:
     major: 1
-    minor: 0
-  modules:
+    minor: 1
+  main:
+    start: _start
+  libraries:
     libdltest:
       functions:
         - maintestfunc
+        - malloc
 

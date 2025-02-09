@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
   maintestfunc(1);
 
   sceClibPrintf("loading lib\n");
+
   void* h = dlopen("app0:/module/testplug.suprx",0);
   sceClibPrintf("loaded lib: 0x%08x\n", h);
 
@@ -48,6 +49,15 @@ int main(int argc, char *argv[])
   {
     sceClibPrintf("got 0x%08x\n", f2ptr);
     f2ptr(2);
+  }
+
+  void* (*f3ptr)(size_t size);
+  sceClibPrintf("resolving malloc from app (without dlopen handle)\n");
+  f3ptr = dlsym(NULL, "malloc");
+
+  if (f3ptr!=NULL)
+  {
+    sceClibPrintf("got 0x%08x\n", f3ptr);
   }
 
   return 0;
